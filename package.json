@@ -1,0 +1,18 @@
+{
+  "name": "readyproof",
+  "version": "1.0.0",
+  "description": "Photography proofing platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.0.3",
+    "better-sqlite3": "^11.9.1",
+    "uuid": "^9.0.0",
+    "dropbox": "^10.34.0",
+    "node-fetch": "^2.6.9",
+    "nodemailer": "^6.9.1"
+  }
+}

@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #fafafa;
+      --white: #ffffff;
+      --border: #e0e0e0;
+      --border2: #d0d0d0;
+      --ink: #000000;
+      --ink-mid: #666666;
+      --ink-faint: #999999;
+      --accent: #000000;
+      --accent-light: #f5f5f5;
+      --green: #000000;
+      --red: #000000;
+      --shadow: rgba(0,0,0,0.08);
+    }
+    body { background: var(--bg); color: var(--ink); font-family: 'DM Sans', sans-serif; min-height: 100vh; font-size: 14px; }
+
+    /* ── Header ── */
+    .header { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
+    .header-logo { display: flex; align-items: center; gap: 12px; }
+    .header-logo img { height: 36px; width: auto; object-fit: contain; }
+    .header-logo .studio-text { font-family: 'DM Sans', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 0.02em; color: var(--ink); text-transform: uppercase; }
+    .client-label { font-size: 12px; color: var(--ink-faint); }
+    .save-indicator { font-size: 11px; color: var(--ink-faint); letter-spacing: 0.04em; }
+    .save-indicator.saving { color: var(--accent); }
+    .save-indicator.saved  { color: var(--green); }
+
+    /* ── Progress steps ── */
+    .progress-bar { background: var(--white); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: center; gap: 0; }
+    .step { display: flex; align-items: center; gap: 8px; }
+    .step-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; border: 1.5px solid var(--border); color: var(--ink-faint); background: var(--white); flex-shrink: 0; transition: all 0.3s; }
+    .step.active .step-num { border-color: var(--ink); background: var(--ink); color: white; }
+    .step.done .step-num { border-color: var(--green); background: var(--green); color: white; }
+    .step-label { font-size: 12px; color: var(--ink-faint); white-space: nowrap; }
+    .step.active .step-label { color: var(--ink); font-weight: 500; }
+    .step.done .step-label { color: var(--green); }
+    .step-line { width: 40px; height: 1px; background: var(--border); margin: 0 8px; flex-shrink: 0; }
+    .step-line.done { background: var(--green); }
+    @media (max-width: 480px) { .step-label { display: none; } .step-line { width: 24px; } }
+
+    /* ── Filter bar ── */
+    .filter-bar { background: var(--bg); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .filter-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); margin-right: 4px; }
+    .filter-btn { background: none; border: 1px solid var(--border); padding: 5px 14px; font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer; color: var(--ink-mid); transition: all 0.12s; }
+    .filter-btn:hover { border-color: var(--ink); color: var(--ink); }
+    .filter-btn.active { background: var(--ink); color: white; border-color: var(--ink); }
+    .filter-divider { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+    .filter-count { margin-left: auto; font-size: 12px; color: var(--ink-mid); }
+    .filter-count strong { color: var(--ink); }
+
+    /* ── Gallery grid ── */
+    .gallery { padding: 20px; columns: 4 200px; column-gap: 10px; }
+    @media (max-width: 640px) { .gallery { columns: 2 140px; padding: 12px; } }
+    @media (max-width: 400px) { .gallery { columns: 1; } }
+
+    /* ── Image card ── */
+    .img-card { break-inside: avoid; margin-bottom: 10px; position: relative; cursor: pointer; border-radius: 2px; overflow: hidden; background: #ddd; box-shadow: 0 1px 4px var(--shadow); transition: transform 0.2s, box-shadow 0.2s; }
+    .img-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px var(--shadow); }
+    .img-card.selected { outline: 3px solid var(--ink); outline-offset: 2px; }
+    .img-card img { width: 100%; display: block; transition: opacity 0.3s; }
+    .img-card img.loading { opacity: 0; }
+
+    .raw-placeholder { width: 100%; aspect-ratio: 3/2; background: linear-gradient(135deg,#2a2622,#3d3830); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+    .raw-placeholder .raw-icon { font-size: 24px; }
+    .raw-placeholder .raw-name { font-size: 9px; color: #666; text-align: center; padding: 0 8px; word-break: break-all; letter-spacing: 0.03em; }
+
+    .card-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 40%, transparent 55%, rgba(0,0,0,0.45) 100%); opacity: 0; transition: opacity 0.2s; display: flex; flex-direction: column; justify-content: space-between; padding: 8px; }
+    .img-card:hover .card-overlay, .img-card.selected .card-overlay, .img-card.favorited .card-overlay { opacity: 1; }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+
+    .btn-fav { background: none; border: none; cursor: pointer; font-size: 22px; line-height: 1; transition: transform 0.15s; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+    .btn-fav:hover { transform: scale(1.2); }
+    .btn-select { width: 22px; height: 22px; border: 2px solid rgba(255,255,255,0.8); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; border-radius: 2px; flex-shrink: 0; }
+    .btn-select.checked { background: var(--ink); border-color: var(--ink); }
+    .btn-select.checked::after { content: '✓'; color: white; font-size: 12px; font-weight: bold; }
+    .note-badge { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; font-size: 9px; padding: 2px 5px; letter-spacing: 0.04em; }
+    .img-filename { color: rgba(255,255,255,0.7); font-size: 9px; letter-spacing: 0.03em; text-shadow: 0 1px 2px rgba(0,0,0,0.8); max-width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── Note modal ── */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(28,24,20,0.55); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--white); max-width: 500px; width: 100%; padding: 28px; position: relative; box-shadow: 0 8px 40px rgba(28,24,20,0.18); max-height: 92vh; overflow-y: auto; }
+    .modal-img { width: 100%; max-height: 260px; object-fit: contain; background: #f0ece6; margin-bottom: 16px; display: block; }
+    .modal h3 { font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; margin-bottom: 14px; word-break: break-all; }
+    .modal-actions { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .modal-note-label { font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; font-weight: 600; }
+    .modal-note { width: 100%; border: 1px solid var(--border); padding: 10px 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); resize: vertical; min-height: 72px; outline: none; background: var(--bg); }
+    .modal-note:focus { border-color: var(--ink); background: white; }
+    .modal-select { width: 100%; border: 1px solid var(--border); padding: 10px 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); outline: none; background: white; margin-bottom: 4px; }
+    .modal-select:focus { border-color: var(--ink); }
+    .modal-close { position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 18px; cursor: pointer; color: var(--ink-faint); }
+    .modal-close:hover { color: var(--ink); }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; border: none; transition: all 0.12s; }
+    .btn-primary { background: var(--ink); color: white; }
+    .btn-primary:hover { background: #333; }
+    .btn-outline { background: none; border: 1px solid var(--border); color: var(--ink-mid); }
+    .btn-outline:hover { border-color: var(--ink); color: var(--ink); }
+    .btn-gold { background: var(--gold); color: white; }
+    .btn-gold:hover { background: #b08050; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Add-ons step ── */
+    .addons-container { padding: 24px; max-width: 680px; margin: 0 auto; }
+    .addons-container h2 { font-family: 'DM Sans', sans-serif; font-size: 24px; font-weight: 500; margin-bottom: 8px; }
+    .addons-container .sub { color: var(--ink-mid); font-size: 14px; margin-bottom: 28px; line-height: 1.6; }
+    .addon-card { background: var(--white); border: 1px solid var(--border); padding: 20px; margin-bottom: 12px; cursor: pointer; transition: all 0.15s; display: flex; align-items: flex-start; gap: 16px; }
+    .addon-card:hover { border-color: var(--ink-mid); }
+    .addon-card.selected { border-color: var(--ink); background: var(--gold-light); }
+    .addon-check { width: 22px; height: 22px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; transition: all 0.12s; }
+    .addon-card.selected .addon-check { background: var(--ink); border-color: var(--ink); color: white; font-size: 12px; }
+    .addon-card.selected .addon-check::after { content: '✓'; }
+    .addon-info { flex: 1; }
+    .addon-name { font-weight: 500; font-size: 15px; margin-bottom: 4px; }
+    .addon-desc { font-size: 13px; color: var(--ink-mid); line-height: 1.5; }
+    .addon-detail { margin-top: 10px; display: none; }
+    .addon-card.selected .addon-detail { display: block; }
+    .addon-detail textarea { width: 100%; border: 1px solid var(--border); padding: 8px 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; resize: vertical; min-height: 60px; outline: none; background: white; }
+    .addon-detail textarea:focus { border-color: var(--ink); }
+    .addon-detail label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: 5px; }
+    .addons-actions { display: flex; gap: 12px; margin-top: 24px; }
+
+    /* ── Submit bar ── */
+    .submit-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 -2px 16px var(--shadow); z-index: 90; }
+    .submit-info { font-size: 13px; color: var(--ink-mid); }
+    .submit-info strong { color: var(--ink); font-size: 15px; }
+    .submit-limit { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
+    .submit-limit.over { color: var(--red); }
+    .submit-actions { display: flex; gap: 10px; align-items: center; }
+
+    /* ── Status / loading ── */
+    .status-page { min-height: 70vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; text-align: center; padding: 40px 20px; }
+    .status-page .big-icon { font-size: 52px; }
+    .status-page h2 { font-family: 'DM Sans', sans-serif; font-size: 28px; font-weight: 700; }
+    .status-page p { color: var(--ink-mid); max-width: 400px; line-height: 1.7; font-size: 14px; }
+    .loading-screen { min-height: 70vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+    .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--ink); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 11px 22px; font-size: 13px; z-index: 300; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-logo" id="headerLogo">
+    <span class="studio-text" id="studioName">Gallery</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:20px;">
+    <span class="client-label" id="clientLabel"></span>
+    <span class="save-indicator" id="saveIndicator">All changes saved</span>
+  </div>
+</header>
+
+<!-- Progress steps -->
+<div class="progress-bar" id="progressBar">
+  <div class="step active" id="step1">
+    <div class="step-num">1</div>
+    <div class="step-label">Browse &amp; Select</div>
+  </div>
+  <div class="step-line" id="line12"></div>
+  <div class="step" id="step2">
+    <div class="step-num">2</div>
+    <div class="step-label">Add-ons</div>
+  </div>
+  <div class="step-line" id="line23"></div>
+  <div class="step" id="step3">
+    <div class="step-num">3</div>
+    <div class="step-label">Submit</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="loading-screen">
+    <div class="spinner"></div>
+    <p style="color:var(--ink-faint);font-size:13px;letter-spacing:0.04em;">Loading your gallery…</p>
+  </div>
+</div>
+
+<!-- Note modal -->
+<div class="modal-backdrop" id="noteModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <img class="modal-img" id="modalImg" src="" alt="">
+    <h3 id="modalFilename"></h3>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="modalFavBtn" onclick="toggleModalFav()">♡ Favorite</button>
+      <button class="btn btn-primary" id="modalSelectBtn" onclick="toggleModalSelect()">Select</button>
+    </div>
+    <div class="modal-note-label">Editing Tier</div>
+    <select class="modal-select" id="modalEditingTier" onchange="updateEditingTier()">
+      <option value="basic">Basic Editing (included)</option>
+      <option value="tier_1">Tier I Retouching (+$35-70/image)</option>
+      <option value="tier_2">Tier II Retouching (+$65-100/image)</option>
+      <option value="tier_3">Tier III Retouching (+$95-130/image)</option>
+    </select>
+    <div class="modal-note-label" style="margin-top:16px;">Note for your photographer</div>
+    <textarea class="modal-note" id="modalNote" placeholder="Optional: requests, notes, or specifics…" oninput="debounceSave()"></textarea>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const token = location.pathname.split('/gallery/')[1];
+let sessionData = null, branding = null;
+let images = [], filtered = [], currentFilter = 'all';
+let modalIdx = null;
+let currentStep = 1; // 1=gallery, 2=addons, 3=submitted
+let selectedAddons = {}; // key: addon_type, value: { details }
+let saveDebounce = null;
+
+// Initialize editing_tier for all images
+function initImages(imageList) {
+  return imageList.map(img => ({
+    ...img,
+    editing_tier: img.editing_tier || 'basic'
+  }));
+}
+
+const ADDONS = [
+  { id: 'basic_retouch',    name: 'Basic Retouch',               desc: 'Skin smoothing, blemish removal, and minor touch-ups on selected images.' },
+  { id: 'advanced_retouch', name: 'Advanced Retouch',            desc: 'Detailed retouching including body contouring, background cleanup, and more.' },
+  { id: 'extra_images',     name: 'Additional Edited Images',    desc: 'Add more images beyond your package. Specify quantity or which images.' },
+  { id: 'rush_delivery',    name: 'Rush Delivery',               desc: 'Expedited turnaround — your images delivered faster than standard.' },
+];
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const res = await fetch(`/api/gallery/${token}`);
+    if (!res.ok) { const e = await res.json(); showError(e.error || 'Gallery not found'); return; }
+    const data = await res.json();
+    sessionData = data.session;
+    images = initImages(data.images);
+    branding = data.branding;
+
+    // Apply branding
+    if (branding.logo_path) {
+      document.getElementById('headerLogo').innerHTML = `<img src="${branding.logo_path}" alt="${branding.studio_name}">`;
+    } else {
+      document.getElementById('studioName').textContent = branding.studio_name || 'Gallery';
+    }
+    document.getElementById('clientLabel').textContent = sessionData.client_name;
+    document.title = `Your Gallery`;
+
+    if (['submitted','editing','complete'].includes(sessionData.status)) { showSubmittedScreen(); return; }
+
+    applyFilter('all');
+    renderGallery();
+    renderSubmitBar();
+  } catch (err) {
+    showError('Could not load gallery. Please try again.');
+  }
+}
+
+// ── Step management ───────────────────────────────────────────────────────────
+function setStep(n) {
+  currentStep = n;
+  [1,2,3].forEach(i => {
+    const el = document.getElementById(`step${i}`);
+    el.className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+  });
+  document.getElementById('line12').className = 'step-line' + (n > 1 ? ' done' : '');
+  document.getElementById('line23').className = 'step-line' + (n > 2 ? ' done' : '');
+}
+
+// ── Filter ────────────────────────────────────────────────────────────────────
+function applyFilter(f) {
+  currentFilter = f;
+  filtered = f === 'all' ? [...images] : f === 'favorites' ? images.filter(i => i.is_favorite) : images.filter(i => i.is_selected);
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  renderGallery();
+}
+
+// ── Render gallery ────────────────────────────────────────────────────────────
+function renderGallery() {
+  setStep(1);
+  const selCount = images.filter(i => i.is_selected).length;
+  const favCount = images.filter(i => i.is_favorite).length;
+  const numIncluded = sessionData.num_included || 0;
+  document.getElementById('app').innerHTML = `
+    <div class="filter-bar">
+      <span class="filter-label">Show</span>
+      <button class="filter-btn ${currentFilter==='all'?'active':''}" data-filter="all" onclick="applyFilter('all')">All (${images.length})</button>
+      <button class="filter-btn ${currentFilter==='favorites'?'active':''}" data-filter="favorites" onclick="applyFilter('favorites')">Favorites (${favCount})</button>
+      <button class="filter-btn ${currentFilter==='selected'?'active':''}" data-filter="selected" onclick="applyFilter('selected')">Selected (${selCount})</button>
+      <span class="filter-divider"></span>
+      <span class="filter-count"><strong>${selCount}</strong> selected${numIncluded > 0 ? ` of <strong>${numIncluded}</strong> included` : ''}</span>
+    </div>
+    <div class="gallery">${filtered.map(img => renderCard(img)).join('')}</div>
+  `;
+  updateSubmitBar();
+}
+
+function renderCard(img) {
+  const idx = images.indexOf(img);
+  const fav = img.is_favorite;
+  const sel = img.is_selected;
+  
+  // Show placeholder only if RAW AND no preview available
+  if (img.isRaw && !img.previewUrl) return `
+    <div class="img-card ${sel?'selected':''} ${fav?'favorited':''}" onclick="openModal(${idx})">
+      <div class="raw-placeholder"><div class="raw-icon">🎞</div><div class="raw-name">${img.filename}</div></div>
+      <div class="card-overlay">
+        <div class="card-top"><button class="btn-fav ${fav?'active':''}" onclick="event.stopPropagation();toggleFav(${idx})">${fav?'♥':'♡'}</button><div class="btn-select ${sel?'checked':''}" onclick="event.stopPropagation();toggleSelect(${idx})"></div></div>
+        <div class="card-bottom"><span class="img-filename">${img.filename}</span>${img.client_note?'<span class="note-badge">Note</span>':''}</div>
+      </div>
+    </div>`;
+    
+  // Otherwise show the preview image (works for JPEGs and RAW thumbnails)
+  return `
+    <div class="img-card ${sel?'selected':''} ${fav?'favorited':''}" onclick="openModal(${idx})">
+      <img src="${img.previewUrl}" alt="${img.filename}" class="loading" onload="this.classList.remove('loading')">
+      <div class="card-overlay">
+        <div class="card-top"><button class="btn-fav ${fav?'active':''}" onclick="event.stopPropagation();toggleFav(${idx})">${fav?'♥':'♡'}</button><div class="btn-select ${sel?'checked':''}" onclick="event.stopPropagation();toggleSelect(${idx})"></div></div>
+        <div class="card-bottom"><span class="img-filename">${img.filename}</span>${img.client_note?'<span class="note-badge">Note</span>':''}</div>
+      </div>
+    </div>`;
+}
+
+// ── Submit bar ────────────────────────────────────────────────────────────────
+function renderSubmitBar() {
+  const bar = document.createElement('div');
+  bar.className = 'submit-bar'; bar.id = 'submitBar';
+  bar.innerHTML = `
+    <div class="submit-info">
+      <div><strong id="sbCount">0</strong> images selected</div>
+      <div class="submit-limit" id="sbLimit"></div>
+    </div>
+    <div class="submit-actions">
+      <button class="btn btn-gold" id="submitBtn" onclick="goToAddons()">Continue →</button>
+    </div>`;
+  document.body.appendChild(bar);
+  updateSubmitBar();
+}
+
+function updateSubmitBar() {
+  const selCount = images.filter(i => i.is_selected).length;
+  const numIncluded = sessionData.num_included || 0;
+  const el = document.getElementById('sbCount');
+  const limit = document.getElementById('sbLimit');
+  const btn = document.getElementById('submitBtn');
+  if (el) el.textContent = selCount;
+  if (limit && numIncluded > 0) {
+    const diff = numIncluded - selCount;
+    limit.classList.toggle('over', diff < 0);
+    limit.textContent = diff > 0 ? `${diff} more in your package` : diff === 0 ? '✓ Package fulfilled' : `${Math.abs(diff)} over package`;
+  }
+  if (btn) btn.disabled = selCount === 0;
+}
+
+// ── Add-ons step ──────────────────────────────────────────────────────────────
+function goToAddons() {
+  const selCount = images.filter(i => i.is_selected).length;
+  if (selCount === 0) { showToast('Please select at least one image first'); return; }
+
+  // Save before proceeding
+  saveSelections();
+  setStep(2);
+
+  document.getElementById('app').innerHTML = `
+    <div class="addons-container">
+      <h2>Add-on Services</h2>
+      <p class="sub">Would you like to add any of the following to your order? These are optional — you can skip straight to submitting if you don't need any.</p>
+      ${ADDONS.map(a => `
+        <div class="addon-card ${selectedAddons[a.id] ? 'selected' : ''}" id="addon-${a.id}" onclick="toggleAddon('${a.id}')">
+          <div class="addon-check"></div>
+          <div class="addon-info">
+            <div class="addon-name">${a.name}</div>
+            <div class="addon-desc">${a.desc}</div>
+            <div class="addon-detail">
+              <label>Details / Notes</label>
+              <textarea placeholder="Any specific requests…" onclick="event.stopPropagation()" oninput="updateAddonDetail('${a.id}', this.value)">${selectedAddons[a.id]?.details || ''}</textarea>
+            </div>
+          </div>
+        </div>`).join('')}
+      <div class="addons-actions">
+        <button class="btn btn-outline" onclick="renderGallery();renderSubmitBar();">← Back to Gallery</button>
+        <button class="btn btn-gold" onclick="goToSubmit()">Submit Selection →</button>
+      </div>
+    </div>
+  `;
+  const bar = document.getElementById('submitBar');
+  if (bar) bar.remove();
+}
+
+function toggleAddon(id) {
+  if (selectedAddons[id]) {
+    delete selectedAddons[id];
+  } else {
+    selectedAddons[id] = { details: '' };
+  }
+  document.getElementById(`addon-${id}`).classList.toggle('selected', !!selectedAddons[id]);
+}
+
+function updateAddonDetail(id, val) {
+  if (selectedAddons[id]) selectedAddons[id].details = val;
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+async function goToSubmit() {
+  const selected = images.filter(i => i.is_selected);
+  const addonList = Object.entries(selectedAddons).map(([type, data]) => ({
+    order_type: ADDONS.find(a => a.id === type)?.name || type,
+    details: data.details || null,
+    quantity: 1, price: 0,
+  }));
+
+  const confirmMsg = addonList.length > 0
+    ? `Submit ${selected.length} image${selected.length !== 1 ? 's' : ''} with ${addonList.length} add-on${addonList.length !== 1 ? 's' : ''}?`
+    : `Submit your selection of ${selected.length} image${selected.length !== 1 ? 's' : ''}?`;
+
+  if (!confirm(confirmMsg + '\n\nThis cannot be undone.')) return;
+
+  setStep(3);
+  const payload = images.map(img => ({ filename: img.filename, is_favorite: img.is_favorite, is_selected: img.is_selected, client_note: img.client_note || null }));
+
+  try {
+    const res = await fetch(`/api/gallery/${token}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selections: payload, orders: addonList }),
+    });
+    const data = await res.json();
+    if (res.ok) showSubmittedScreen(data.selected_count, addonList.length);
+    else showToast(data.error || 'Submission failed');
+  } catch { showToast('Submission failed — please try again'); }
+}
+
+// ── Toggles ───────────────────────────────────────────────────────────────────
+function toggleFav(idx) {
+  images[idx].is_favorite = !images[idx].is_favorite;
+  
+  // Update UI instantly without full re-render
+  const card = event.currentTarget.closest('.img-card');
+  if (card) {
+    card.classList.toggle('favorited', images[idx].is_favorite);
+    const btn = event.currentTarget;
+    btn.classList.toggle('active', images[idx].is_favorite);
+    btn.textContent = images[idx].is_favorite ? '♥' : '♡';
+  }
+  
+  // Update counts in filter bar
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    if (b.dataset.filter === 'favorites') {
+      b.textContent = `Favorites (${images.filter(i => i.is_favorite).length})`;
+    }
+  });
+  
+  updateSubmitBar();
+  debounceSave();
+}
+
+function toggleSelect(idx) {
+  images[idx].is_selected = !images[idx].is_selected;
+  
+  // Update UI instantly
+  const card = event.currentTarget.closest('.img-card');
+  if (card) {
+    card.classList.toggle('selected', images[idx].is_selected);
+    const checkbox = event.currentTarget;
+    checkbox.classList.toggle('checked', images[idx].is_selected);
+  }
+  
+  // Update counts in filter bar
+  const selCount = images.filter(i => i.is_selected).length;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    if (b.dataset.filter === 'selected') {
+      b.textContent = `Selected (${selCount})`;
+    }
+  });
+  const countEl = document.querySelector('.filter-count');
+  if (countEl) {
+    const numIncluded = sessionData.num_included || 0;
+    countEl.innerHTML = `<strong>${selCount}</strong> selected${numIncluded > 0 ? ` of <strong>${numIncluded}</strong> included` : ''}`;
+  }
+  
+  updateSubmitBar();
+  debounceSave();
+}
+
+function toggleModalFav() { 
+  if (modalIdx === null) return; 
+  toggleFav(modalIdx); 
+  const img = images[modalIdx]; 
+  document.getElementById('modalFavBtn').textContent = img.is_favorite ? '♥ Favorited' : '♡ Favorite'; 
+}
+function toggleModalSelect() {
+  if (modalIdx === null) return; toggleSelect(modalIdx);
+  const img = images[modalIdx]; const btn = document.getElementById('modalSelectBtn');
+  btn.textContent = img.is_selected ? '✓ Selected' : 'Select';
+  btn.className = img.is_selected ? 'btn btn-gold' : 'btn btn-primary';
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal(idx) {
+  modalIdx = idx; const img = images[idx];
+  const mi = document.getElementById('modalImg');
+  if (img.isRaw && !img.previewUrl) { mi.style.display = 'none'; } else { mi.style.display = 'block'; mi.src = img.previewUrl; }
+  document.getElementById('modalFilename').textContent = img.filename;
+  document.getElementById('modalNote').value = img.client_note || '';
+  document.getElementById('modalEditingTier').value = img.editing_tier || 'basic';
+  const fb = document.getElementById('modalFavBtn'); fb.textContent = img.is_favorite ? '♥ Favorited' : '♡ Favorite';
+  const sb = document.getElementById('modalSelectBtn'); sb.textContent = img.is_selected ? '✓ Selected' : 'Select'; sb.className = img.is_selected ? 'btn btn-gold' : 'btn btn-primary';
+  document.getElementById('noteModal').classList.add('open');
+}
+
+function updateEditingTier() {
+  if (modalIdx === null) return;
+  images[modalIdx].editing_tier = document.getElementById('modalEditingTier').value;
+  debounceSave();
+}
+
+function closeModal() {
+  if (modalIdx !== null) { 
+    images[modalIdx].client_note = document.getElementById('modalNote').value.trim() || null; 
+    images[modalIdx].editing_tier = document.getElementById('modalEditingTier').value;
+    renderGallery(); 
+    debounceSave(); 
+  }
+  modalIdx = null; document.getElementById('noteModal').classList.remove('open');
+}
+document.getElementById('noteModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+// ── Auto-save ─────────────────────────────────────────────────────────────────
+function debounceSave() { clearTimeout(saveDebounce); setSaveStatus('saving'); saveDebounce = setTimeout(saveSelections, 1200); }
+
+async function saveSelections() {
+  const payload = images.map(img => ({ 
+    filename: img.filename, 
+    is_favorite: img.is_favorite, 
+    is_selected: img.is_selected, 
+    client_note: img.client_note || null,
+    editing_tier: img.editing_tier || 'basic'
+  }));
+  try {
+    const res = await fetch(`/api/gallery/${token}/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ selections: payload }) });
+    setSaveStatus(res.ok ? 'saved' : '');
+  } catch { setSaveStatus(''); }
+}
+
+function setSaveStatus(s) {
+  const el = document.getElementById('saveIndicator'); if (!el) return;
+  el.className = `save-indicator ${s}`;
+  el.textContent = s === 'saving' ? 'Saving…' : s === 'saved' ? 'All changes saved' : 'Not saved';
+}
+
+// ── Screens ───────────────────────────────────────────────────────────────────
+function showSubmittedScreen(count, addons) {
+  document.getElementById('progressBar').style.display = 'none';
+  document.getElementById('app').innerHTML = `
+    <div class="status-page">
+      <div class="big-icon">✓</div>
+      <h2>Selection Submitted!</h2>
+      <p>Thank you${count ? `, ${sessionData?.client_name || ''}` : ''}! We've received your selection${count ? ` of <strong>${count} image${count !== 1 ? 's' : ''}</strong>` : ''}${addons > 0 ? ` and ${addons} add-on request${addons !== 1 ? 's' : ''}` : ''}. We'll be in touch when your edited images are ready.</p>
+    </div>`;
+  const bar = document.getElementById('submitBar'); if (bar) bar.remove();
+}
+
+function showError(msg) {
+  document.getElementById('app').innerHTML = `<div class="status-page"><div class="big-icon">⚠</div><h2>Gallery Not Found</h2><p>${msg}</p></div>`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+init();
+</script>
+</body>
+</html>
