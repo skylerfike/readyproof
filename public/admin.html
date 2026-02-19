@@ -391,7 +391,7 @@ function renderCard(session) {
   const photoCount = 0; // TODO: Fetch actual count
 
   return `
-    <div class="session-card" data-session-id="${session.id}">
+    <div class="session-card" data-session-id="${session.id}" onclick="openModal(${session.id})">
       <div class="card-header">
         <div class="status-badge ${status.class}">${status.badge}</div>
       </div>
