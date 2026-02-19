@@ -44,6 +44,8 @@
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
     .page-header h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
     .page-subtitle { color: var(--text-light); font-size: 14px; margin-top: 4px; }
+    .new-session-btn { padding: 10px 20px; background: var(--dark); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .new-session-btn:hover { background: #2a2d33; }
 
     .search-sort { display: flex; gap: 12px; margin-bottom: 24px; }
     .search-box { flex: 1; max-width: 400px; position: relative; }
@@ -99,6 +101,17 @@
     .photo-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 8px; }
     .photo-thumb { aspect-ratio: 1; background: var(--bg); border-radius: 8px; overflow: hidden; }
     .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* New Session Modal */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+    .form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+    .form-input:focus { outline: none; border-color: var(--dark); }
+    .form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+    .form-actions { display: flex; gap: 12px; margin-top: 24px; }
+    .btn-cancel { flex: 1; padding: 12px; background: white; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-create { flex: 1; padding: 12px; background: var(--dark); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-create:hover { background: #2a2d33; }
   </style>
 </head>
 <body>
@@ -166,6 +179,7 @@
         <h1 id="page-title">All Sessions</h1>
         <div class="page-subtitle" id="page-subtitle">0 sessions</div>
       </div>
+      <button class="new-session-btn" onclick="openNewSessionModal()">+ New Session</button>
     </div>
 
     <div class="search-sort">
@@ -248,6 +262,51 @@
         <!-- Thumbnails render here -->
       </div>
     </div>
+  </div>
+</div>
+
+<!-- New Session Modal -->
+<div class="modal-overlay" id="new-session-modal" onclick="if(event.target===this) closeNewSessionModal()">
+  <div class="modal">
+    <div class="modal-close" onclick="closeNewSessionModal()">×</div>
+    <div class="modal-title">Create New Session</div>
+    
+    <form id="new-session-form" onsubmit="createNewSession(event)">
+      <div class="form-group">
+        <label class="form-label">Client Name</label>
+        <input type="text" class="form-input" id="new-client-name" placeholder="First Last" required>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Client Email</label>
+        <input type="email" class="form-input" id="new-client-email" placeholder="client@example.com" required>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Dropbox RAW Link</label>
+        <input type="url" class="form-input" id="new-dropbox-link" placeholder="https://www.dropbox.com/..." required>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Package Type</label>
+        <select class="form-select" id="new-package-id" required>
+          <option value="">Select package...</option>
+          <option value="onlo_45">Workplace ONLO 45</option>
+          <option value="onlo_90">Workplace ONLO 90</option>
+          <option value="onlo_60_actor">Actor ONLO 60</option>
+          <option value="onlo_180_actor">Actor ONLO 180</option>
+          <option value="studio_30_actor">Actor Studio 30</option>
+          <option value="studio_60_actor">Actor Studio 60</option>
+          <option value="studio_120_actor">Actor Studio 120</option>
+          <option value="studio_240_actor">Actor Studio 240</option>
+        </select>
+      </div>
+      
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="closeNewSessionModal()">Cancel</button>
+        <button type="submit" class="btn-create">Create Session</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -519,6 +578,53 @@ function closeModal() {
 function logout() {
   localStorage.removeItem('admin_secret');
   window.location.href = '/admin';
+}
+
+function openNewSessionModal() {
+  document.getElementById('new-session-modal').classList.add('open');
+}
+
+function closeNewSessionModal() {
+  document.getElementById('new-session-modal').classList.remove('open');
+  document.getElementById('new-session-form').reset();
+}
+
+async function createNewSession(e) {
+  e.preventDefault();
+  
+  const clientName = document.getElementById('new-client-name').value.trim();
+  const clientEmail = document.getElementById('new-client-email').value.trim();
+  const dropboxLink = document.getElementById('new-dropbox-link').value.trim();
+  const packageId = document.getElementById('new-package-id').value;
+  
+  const SECRET = window.adminSecret || localStorage.getItem('admin_secret');
+  
+  try {
+    const res = await fetch('/api/admin/create-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secret: SECRET,
+        client_name: clientName,
+        client_email: clientEmail,
+        dropbox_link: dropboxLink,
+        package_id: packageId
+      })
+    });
+    
+    if (res.ok) {
+      closeNewSessionModal();
+      await loadSessions();
+      renderSessions();
+      updateBadges();
+      alert('Session created successfully!');
+    } else {
+      const error = await res.json();
+      alert('Failed to create session: ' + (error.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Failed to create session: ' + err.message);
+  }
 }
 
 init();

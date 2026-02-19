@@ -92,6 +92,35 @@ app.post('/api/admin/sessions', requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// POST /api/admin/create-session — simplified for admin UI (accepts package_id)
+app.post('/api/admin/create-session', requireAdmin, async (req, res) => {
+  const { client_name, client_email, dropbox_link, package_id } = req.body;
+  if (!client_name || !client_email || !dropbox_link || !package_id)
+    return res.status(400).json({ error: 'All fields required' });
+
+  const id = uuidv4();
+  const magic_token = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '');
+  
+  try {
+    db.createSession.run({ 
+      id, 
+      client_name, 
+      client_email, 
+      dropbox_link, 
+      magic_token,
+      package_name: package_id,
+      num_included: 0,
+      notes: null,
+      balance_owed: 0,
+      payment_notes: null
+    });
+    const session = db.getSessionById.get(id);
+    res.json({ ...session, gallery_url: `/gallery/${magic_token}` });
+  } catch (err) { 
+    res.status(500).json({ error: err.message }); 
+  }
+});
+
 // PATCH /api/admin/sessions/:id — edit all session fields
 app.patch('/api/admin/sessions/:id', requireAdmin, (req, res) => {
   const session = db.getSessionById.get(req.params.id);
