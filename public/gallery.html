@@ -98,8 +98,9 @@
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
     .card-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
 
-    .btn-fav { background: none; border: none; cursor: pointer; font-size: 22px; line-height: 1; transition: transform 0.15s; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
-    .btn-fav:hover { transform: scale(1.2); }
+    .btn-fav { background: none; border: none; cursor: pointer; font-size: 28px; line-height: 1; transition: transform 0.15s; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.6)); color: rgba(255,255,255,0.85); }
+    .btn-fav:hover { transform: scale(1.15); }
+    .btn-fav.active { color: #ff4444; }
     .btn-select { width: 22px; height: 22px; border: 2px solid rgba(255,255,255,0.8); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s; border-radius: 2px; flex-shrink: 0; }
     .btn-select.checked { background: var(--ink); border-color: var(--ink); }
     .btn-select.checked::after { content: '✓'; color: white; font-size: 12px; font-weight: bold; }
@@ -235,7 +236,7 @@
     </div>
   </div>
   <div class="pricing-footer">
-    <button class="checkout-btn" id="checkout-btn" disabled onclick="proceedToCheckout()">Review & Submit</button>
+    <button class="checkout-btn" id="checkout-btn" disabled onclick="proceedToCheckout()">Continue to Add-ons →</button>
   </div>
 </div>
 
@@ -372,7 +373,7 @@ function renderCard(img) {
     <div class="img-card ${sel?'selected':''} ${fav?'favorited':''}" onclick="openModal(${idx})">
       <div class="raw-placeholder"><div class="raw-icon">🎞</div><div class="raw-name">${img.filename}</div></div>
       <div class="card-overlay">
-        <div class="card-top"><button class="btn-fav ${fav?'active':''}" onclick="event.stopPropagation();toggleFav(${idx})">${fav?'♥':'♡'}</button><div class="btn-select ${sel?'checked':''}" onclick="event.stopPropagation();toggleSelect(${idx})"></div></div>
+        <div class="card-top"><button class="btn-fav ${fav?'active':''}" onclick="event.stopPropagation();toggleFav(${idx})">${fav?'❤':'🤍'}</button><div class="btn-select ${sel?'checked':''}" onclick="event.stopPropagation();toggleSelect(${idx})"></div></div>
         <div class="card-bottom"><span class="img-filename">${img.filename}</span>${img.client_note?'<span class="note-badge">Note</span>':''}</div>
       </div>
     </div>`;
@@ -382,7 +383,7 @@ function renderCard(img) {
     <div class="img-card ${sel?'selected':''} ${fav?'favorited':''}" onclick="openModal(${idx})">
       <img src="${img.previewUrl}" alt="${img.filename}" class="loading" onload="this.classList.remove('loading')">
       <div class="card-overlay">
-        <div class="card-top"><button class="btn-fav ${fav?'active':''}" onclick="event.stopPropagation();toggleFav(${idx})">${fav?'♥':'♡'}</button><div class="btn-select ${sel?'checked':''}" onclick="event.stopPropagation();toggleSelect(${idx})"></div></div>
+        <div class="card-top"><button class="btn-fav ${fav?'active':''}" onclick="event.stopPropagation();toggleFav(${idx})">${fav?'❤':'🤍'}</button><div class="btn-select ${sel?'checked':''}" onclick="event.stopPropagation();toggleSelect(${idx})"></div></div>
         <div class="card-bottom"><span class="img-filename">${img.filename}</span>${img.client_note?'<span class="note-badge">Note</span>':''}</div>
       </div>
     </div>`;
@@ -507,7 +508,7 @@ function toggleFav(idx) {
     card.classList.toggle('favorited', images[idx].is_favorite);
     const btn = event.currentTarget;
     btn.classList.toggle('active', images[idx].is_favorite);
-    btn.textContent = images[idx].is_favorite ? '♥' : '♡';
+    btn.textContent = images[idx].is_favorite ? '❤' : '🤍';
   }
   
   // Update counts in filter bar
@@ -554,7 +555,7 @@ function toggleModalFav() {
   if (modalIdx === null) return; 
   toggleFav(modalIdx); 
   const img = images[modalIdx]; 
-  document.getElementById('modalFavBtn').textContent = img.is_favorite ? '♥ Favorited' : '♡ Favorite'; 
+  document.getElementById('modalFavBtn').textContent = img.is_favorite ? '❤ Favorited' : '🤍 Favorite'; 
 }
 function toggleModalSelect() {
   if (modalIdx === null) return; toggleSelect(modalIdx);
@@ -571,7 +572,7 @@ function openModal(idx) {
   document.getElementById('modalFilename').textContent = img.filename;
   document.getElementById('modalNote').value = img.client_note || '';
   document.getElementById('modalEditingTier').value = img.editing_tier || 'basic';
-  const fb = document.getElementById('modalFavBtn'); fb.textContent = img.is_favorite ? '♥ Favorited' : '♡ Favorite';
+  const fb = document.getElementById('modalFavBtn'); fb.textContent = img.is_favorite ? '❤ Favorited' : '🤍 Favorite';
   const sb = document.getElementById('modalSelectBtn'); sb.textContent = img.is_selected ? '✓ Selected' : 'Select'; sb.className = img.is_selected ? 'btn btn-gold' : 'btn btn-primary';
   document.getElementById('noteModal').classList.add('open');
 }
