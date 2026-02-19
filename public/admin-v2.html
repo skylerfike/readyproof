@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReadyProof — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f8f8f8;
+      --white: #ffffff;
+      --dark: #1a1d23;
+      --border: #e5e5e5;
+      --text: #2c2c2c;
+      --text-light: #6b6b6b;
+      --text-faint: #a0a0a0;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+    /* Layout */
+    .layout { display: grid; grid-template-columns: 200px 1fr; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar { background: var(--dark); color: white; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 12px; }
+    .sidebar-header .icon { width: 32px; height: 32px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .sidebar-header .title { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    
+    .sidebar-nav { flex: 1; padding: 16px 12px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; color: rgba(255,255,255,0.7); transition: all 0.15s; margin-bottom: 4px; }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: white; }
+    .nav-item.active { background: rgba(255,255,255,0.12); color: white; font-weight: 500; }
+    .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+    .nav-item .badge { margin-left: auto; background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .logout-btn { width: 100%; padding: 10px; background: rgba(255,255,255,0.08); border: none; color: white; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .logout-btn:hover { background: rgba(255,255,255,0.12); }
+
+    /* Main */
+    .main { padding: 32px 40px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+    .page-header h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+    .page-subtitle { color: var(--text-light); font-size: 14px; margin-top: 4px; }
+
+    .search-sort { display: flex; gap: 12px; margin-bottom: 24px; }
+    .search-box { flex: 1; max-width: 400px; position: relative; }
+    .search-box input { width: 100%; padding: 10px 12px 10px 38px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+    .search-box::before { content: '🔍'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; }
+    .sort-dropdown { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: white; font-size: 13px; cursor: pointer; }
+
+    /* Session Grid */
+    .sessions-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+    .session-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; }
+    .session-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
+
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+    .status-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 5px 10px; border-radius: 6px; }
+    .status-new { background: #E3F2FD; color: #1976D2; }
+    .status-review { background: #F3E5F5; color: #7B1FA2; }
+    .status-editing { background: #FFF3E0; color: #F57C00; }
+    .status-complete { background: #E8F5E9; color: #388E3C; }
+
+    .card-body .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); margin-bottom: 4px; }
+    .card-body .customer-name { font-size: 16px; font-weight: 400; margin-bottom: 12px; color: var(--text); }
+    .card-body .series { font-size: 13px; color: var(--text-light); margin-bottom: 8px; }
+    .card-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .card-meta .label { margin: 0; }
+    .card-meta .value { font-size: 13px; font-weight: 600; color: var(--text); }
+
+    .card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 12px; }
+    .photo-count { font-size: 24px; font-weight: 700; color: var(--text); }
+    .photo-count-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: 16px; width: 90%; max-width: 700px; max-height: 85vh; overflow-y: auto; padding: 32px; position: relative; }
+    .modal-close { position: absolute; top: 20px; right: 20px; font-size: 24px; cursor: pointer; color: var(--text-light); }
+    .modal-close:hover { color: var(--text); }
+
+    .modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+    .modal-title { font-size: 24px; font-weight: 600; }
+    .view-gallery-btn { padding: 10px 18px; background: white; border: 2px solid var(--text); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+    .view-gallery-btn:hover { background: var(--bg); }
+
+    .modal-section { margin-bottom: 24px; }
+    .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); margin-bottom: 12px; }
+    .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .info-item .label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin-bottom: 4px; }
+    .info-item .value { font-size: 14px; color: var(--text); }
+    .info-item a { color: #1976D2; text-decoration: none; }
+    .info-item a:hover { text-decoration: underline; }
+
+    .photo-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 8px; }
+    .photo-thumb { aspect-ratio: 1; background: var(--bg); border-radius: 8px; overflow: hidden; }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="icon">📷</div>
+      <div class="title">ReadyProof</div>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-status="all">
+        <span class="icon">📋</span>
+        <span>All Sessions</span>
+        <span class="badge" id="badge-all">0</span>
+      </div>
+      <div class="nav-item" data-status="new">
+        <span class="icon">📷</span>
+        <span>New Sessions</span>
+        <span class="badge" id="badge-new">0</span>
+      </div>
+      <div class="nav-item" data-status="reviewing">
+        <span class="icon">👁️</span>
+        <span>In Client Review</span>
+        <span class="badge" id="badge-reviewing">0</span>
+      </div>
+      <div class="nav-item" data-status="submitted">
+        <span class="icon">✓</span>
+        <span>Selections Made</span>
+        <span class="badge" id="badge-submitted">0</span>
+      </div>
+      <div class="nav-item" data-status="editing">
+        <span class="icon">✏️</span>
+        <span>In Editing</span>
+        <span class="badge" id="badge-editing">0</span>
+      </div>
+      <div class="nav-item" data-status="complete">
+        <span class="icon">✅</span>
+        <span>Session Complete</span>
+        <span class="badge" id="badge-complete">0</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="logout()">🔓 Log Out</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="page-header">
+      <div>
+        <h1 id="page-title">All Sessions</h1>
+        <div class="page-subtitle" id="page-subtitle">0 sessions</div>
+      </div>
+    </div>
+
+    <div class="search-sort">
+      <div class="search-box">
+        <input type="text" placeholder="Search by customer name..." id="search-input">
+      </div>
+      <select class="sort-dropdown" id="sort-select">
+        <option value="date-desc">Date (Newest First)</option>
+        <option value="date-asc">Date (Oldest First)</option>
+        <option value="name-asc">Name (A-Z)</option>
+      </select>
+    </div>
+
+    <div class="sessions-grid" id="sessions-grid">
+      <!-- Cards render here -->
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this) closeModal()">
+  <div class="modal" id="modal">
+    <div class="modal-close" onclick="closeModal()">×</div>
+    
+    <div class="modal-header">
+      <div class="modal-title" id="modal-customer-name">Customer Name</div>
+      <button class="view-gallery-btn" id="view-gallery-btn">
+        <span>🔗</span>
+        <span>View Client Gallery</span>
+      </button>
+    </div>
+
+    <div class="modal-section">
+      <div class="section-title">Contact & Details</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">Contact</div>
+          <div class="value" id="modal-email">—</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Series</div>
+          <div class="value" id="modal-series">—</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Session Type</div>
+          <div class="value" id="modal-session-type">—</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Booking Date</div>
+          <div class="value" id="modal-booking-date">—</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Status</div>
+          <div class="value" id="modal-status">—</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Photos</div>
+          <div class="value" id="modal-photo-count">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="section-title">Dropbox Folders</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">RAW Folder</div>
+          <div class="value"><a href="#" id="modal-raw-link" target="_blank">Open in Dropbox →</a></div>
+        </div>
+        <div class="info-item">
+          <div class="label">Shared Folder</div>
+          <div class="value"><a href="#" id="modal-shared-link" target="_blank">Open in Dropbox →</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="section-title">Photo Preview</div>
+      <div class="photo-grid" id="modal-photo-grid">
+        <!-- Thumbnails render here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let sessions = [];
+let currentFilter = 'all';
+let currentSort = 'date-desc';
+let searchQuery = '';
+
+const SECRET = localStorage.getItem('admin_secret');
+
+async function init() {
+  if (!SECRET) {
+    window.location.href = '/admin';
+    return;
+  }
+
+  await loadSessions();
+  renderSessions();
+  updateBadges();
+
+  // Event listeners
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelector('.nav-item.active')?.classList.remove('active');
+      item.classList.add('active');
+      currentFilter = item.dataset.status;
+      updatePageHeader();
+      renderSessions();
+    });
+  });
+
+  document.getElementById('search-input').addEventListener('input', (e) => {
+    searchQuery = e.target.value.toLowerCase();
+    renderSessions();
+  });
+
+  document.getElementById('sort-select').addEventListener('change', (e) => {
+    currentSort = e.target.value;
+    renderSessions();
+  });
+}
+
+async function loadSessions() {
+  try {
+    const res = await fetch(`/api/admin/sessions?secret=${SECRET}`);
+    sessions = await res.json();
+  } catch (err) {
+    console.error('Failed to load sessions:', err);
+  }
+}
+
+function renderSessions() {
+  let filtered = sessions;
+
+  // Filter by status
+  if (currentFilter !== 'all') {
+    filtered = filtered.filter(s => {
+      if (currentFilter === 'new') return s.status === 'pending';
+      if (currentFilter === 'reviewing') return s.status === 'reviewing';
+      if (currentFilter === 'submitted') return s.status === 'submitted';
+      if (currentFilter === 'editing') return s.status === 'editing';
+      if (currentFilter === 'complete') return s.status === 'complete';
+      return true;
+    });
+  }
+
+  // Search
+  if (searchQuery) {
+    filtered = filtered.filter(s => s.client_name.toLowerCase().includes(searchQuery));
+  }
+
+  // Sort
+  filtered.sort((a, b) => {
+    if (currentSort === 'date-desc') return new Date(b.created_at) - new Date(a.created_at);
+    if (currentSort === 'date-asc') return new Date(a.created_at) - new Date(b.created_at);
+    if (currentSort === 'name-asc') return a.client_name.localeCompare(b.client_name);
+    return 0;
+  });
+
+  const grid = document.getElementById('sessions-grid');
+  grid.innerHTML = filtered.map(s => renderCard(s)).join('');
+
+  updatePageHeader();
+}
+
+function renderCard(session) {
+  const statusMap = {
+    pending: { badge: 'New Session', class: 'status-new' },
+    reviewing: { badge: 'In Client Review', class: 'status-review' },
+    submitted: { badge: 'Selections Made', class: 'status-editing' },
+    editing: { badge: 'In Editing', class: 'status-editing' },
+    complete: { badge: 'Session Complete', class: 'status-complete' },
+  };
+  const status = statusMap[session.status] || statusMap.pending;
+
+  const series = session.package_name ? parseSeries(session.package_name) : 'Unknown Series';
+  const sessionType = session.package_name || 'Unknown';
+  const bookingDate = session.created_at ? new Date(session.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+  const photoCount = 0; // TODO: Fetch actual count
+
+  return `
+    <div class="session-card" onclick="openModal(${session.id})">
+      <div class="card-header">
+        <div class="status-badge ${status.class}">${status.badge}</div>
+      </div>
+      <div class="card-body">
+        <div class="label">Customer</div>
+        <div class="customer-name">${session.client_name}</div>
+        <div class="series">${series}</div>
+        <div class="card-meta">
+          <div class="label">Session Type</div>
+          <div class="value">${sessionType}</div>
+        </div>
+        <div class="card-meta">
+          <div class="label">Booking Date</div>
+          <div class="value">${bookingDate}</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div>
+          <div class="photo-count-label">Photos</div>
+          <div class="photo-count">${photoCount}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function parseSeries(packageName) {
+  if (!packageName) return 'Unknown Series';
+  if (packageName.includes('Actor')) return 'The Actor Series';
+  if (packageName.includes('Model')) return 'The Model Series';
+  if (packageName.includes('Workplace')) return 'The Workplace Series';
+  if (packageName.includes('Executive')) return 'The Executive Series';
+  return 'Unknown Series';
+}
+
+function updateBadges() {
+  document.getElementById('badge-all').textContent = sessions.length;
+  document.getElementById('badge-new').textContent = sessions.filter(s => s.status === 'pending').length;
+  document.getElementById('badge-reviewing').textContent = sessions.filter(s => s.status === 'reviewing').length;
+  document.getElementById('badge-submitted').textContent = sessions.filter(s => s.status === 'submitted').length;
+  document.getElementById('badge-editing').textContent = sessions.filter(s => s.status === 'editing').length;
+  document.getElementById('badge-complete').textContent = sessions.filter(s => s.status === 'complete').length;
+}
+
+function updatePageHeader() {
+  const titleMap = {
+    all: 'All Sessions',
+    new: 'New Sessions',
+    reviewing: 'In Client Review',
+    submitted: 'Selections Made',
+    editing: 'In Editing',
+    complete: 'Session Complete',
+  };
+  document.getElementById('page-title').textContent = titleMap[currentFilter] || 'All Sessions';
+  const count = document.querySelectorAll('.session-card').length;
+  document.getElementById('page-subtitle').textContent = `${count} session${count !== 1 ? 's' : ''}`;
+}
+
+function openModal(sessionId) {
+  const session = sessions.find(s => s.id === sessionId);
+  if (!session) return;
+
+  document.getElementById('modal-customer-name').textContent = session.client_name;
+  document.getElementById('modal-email').textContent = session.client_email;
+  document.getElementById('modal-series').textContent = parseSeries(session.package_name);
+  document.getElementById('modal-session-type').textContent = session.package_name || '—';
+  document.getElementById('modal-booking-date').textContent = new Date(session.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  document.getElementById('modal-status').textContent = session.status;
+  document.getElementById('modal-photo-count').textContent = '0'; // TODO
+
+  const rawLink = session.dropbox_link || '#';
+  const sharedLink = session.notes?.match(/Proofs link: (.+)/)?.[1] || '#';
+  document.getElementById('modal-raw-link').href = rawLink;
+  document.getElementById('modal-shared-link').href = sharedLink;
+
+  document.getElementById('view-gallery-btn').onclick = () => {
+    window.open(`/gallery/${session.magic_token}`, '_blank');
+  };
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function logout() {
+  localStorage.removeItem('admin_secret');
+  window.location.href = '/admin';
+}
+
+init();
+</script>
+</body>
+</html>
