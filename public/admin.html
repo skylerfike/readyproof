@@ -600,11 +600,13 @@ async function createNewSession(e) {
   const SECRET = window.adminSecret || localStorage.getItem('admin_secret');
   
   try {
-    const res = await fetch('/api/admin/create-session', {
+    const res = await fetch('/api/admin/create-session?secret=' + SECRET, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-admin-secret': SECRET
+      },
       body: JSON.stringify({
-        secret: SECRET,
         client_name: clientName,
         client_email: clientEmail,
         dropbox_link: dropboxLink,
