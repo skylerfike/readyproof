@@ -134,6 +134,16 @@
         <span>In Editing</span>
         <span class="badge" id="badge-editing">0</span>
       </div>
+      <div class="nav-item" data-status="in-review">
+        <span class="icon">🔍</span>
+        <span>In Review</span>
+        <span class="badge" id="badge-in-review">0</span>
+      </div>
+      <div class="nav-item" data-status="ready">
+        <span class="icon">📤</span>
+        <span>Ready to Send</span>
+        <span class="badge" id="badge-ready">0</span>
+      </div>
       <div class="nav-item" data-status="complete">
         <span class="icon">✅</span>
         <span>Session Complete</span>
@@ -329,6 +339,8 @@ function renderSessions() {
       if (currentFilter === 'reviewing') return s.status === 'reviewing';
       if (currentFilter === 'submitted') return s.status === 'submitted';
       if (currentFilter === 'editing') return s.status === 'editing';
+      if (currentFilter === 'in-review') return s.status === 'in_review';
+      if (currentFilter === 'ready') return s.status === 'ready';
       if (currentFilter === 'complete') return s.status === 'complete';
       return true;
     });
@@ -350,6 +362,14 @@ function renderSessions() {
   const grid = document.getElementById('sessions-grid');
   grid.innerHTML = filtered.map(s => renderCard(s)).join('');
 
+  // Attach click handlers to cards
+  grid.querySelectorAll('.session-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const sessionId = parseInt(card.dataset.sessionId);
+      openModal(sessionId);
+    });
+  });
+
   updatePageHeader();
 }
 
@@ -359,17 +379,19 @@ function renderCard(session) {
     reviewing: { badge: 'In Client Review', class: 'status-review' },
     submitted: { badge: 'Selections Made', class: 'status-editing' },
     editing: { badge: 'In Editing', class: 'status-editing' },
+    in_review: { badge: 'In Review', class: 'status-review' },
+    ready: { badge: 'Ready to Send', class: 'status-complete' },
     complete: { badge: 'Session Complete', class: 'status-complete' },
   };
   const status = statusMap[session.status] || statusMap.pending;
 
-  const series = session.package_name ? parseSeries(session.package_name) : 'Unknown Series';
-  const sessionType = session.package_name || 'Unknown';
+  const series = parseSeries(session.package_name);
+  const sessionType = formatSessionType(session.package_name);
   const bookingDate = session.created_at ? new Date(session.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
   const photoCount = 0; // TODO: Fetch actual count
 
   return `
-    <div class="session-card" onclick="openModal(${session.id})">
+    <div class="session-card" data-session-id="${session.id}">
       <div class="card-header">
         <div class="status-badge ${status.class}">${status.badge}</div>
       </div>
@@ -398,11 +420,39 @@ function renderCard(session) {
 
 function parseSeries(packageName) {
   if (!packageName) return 'Unknown Series';
-  if (packageName.includes('Actor')) return 'The Actor Series';
-  if (packageName.includes('Model')) return 'The Model Series';
-  if (packageName.includes('Workplace')) return 'The Workplace Series';
-  if (packageName.includes('Executive')) return 'The Executive Series';
+  const lower = packageName.toLowerCase();
+  
+  // Check for specific series keywords
+  if (lower.includes('actor') || lower.includes('onlo_60') || lower.includes('onlo_180') || lower.includes('studio_240') || lower.includes('studio_120') || lower.includes('studio_60') || lower.includes('studio_30')) {
+    return 'The Actor Series';
+  }
+  if (lower.includes('model') || lower.includes('bb_') || lower.includes('digital')) {
+    return 'The Model Series';
+  }
+  if (lower.includes('workplace') || lower.includes('onlo_45') || lower.includes('onlo_90')) {
+    return 'The Workplace Series';
+  }
+  if (lower.includes('executive') || lower.includes('studio_pro')) {
+    return 'The Executive Series';
+  }
+  
   return 'Unknown Series';
+}
+
+function formatSessionType(packageId) {
+  if (!packageId) return 'Unknown';
+  
+  // Convert package_id to display format
+  const formatted = packageId
+    .replace(/_/g, ' ')
+    .toUpperCase()
+    .replace(/ONLO (\d+) ACTOR/, 'ONLO $1')
+    .replace(/ONLO (\d+) WORKPLACE/, 'ONLO $1')
+    .replace(/BB /g, 'Book Builder ')
+    .replace(/STUDIO PRO (\d+)/, 'Studio Pro $1')
+    .replace(/DIGITAL (\d+)/, 'Digital $1');
+  
+  return formatted;
 }
 
 function updateBadges() {
@@ -411,6 +461,8 @@ function updateBadges() {
   document.getElementById('badge-reviewing').textContent = sessions.filter(s => s.status === 'reviewing').length;
   document.getElementById('badge-submitted').textContent = sessions.filter(s => s.status === 'submitted').length;
   document.getElementById('badge-editing').textContent = sessions.filter(s => s.status === 'editing').length;
+  document.getElementById('badge-in-review').textContent = sessions.filter(s => s.status === 'in_review').length;
+  document.getElementById('badge-ready').textContent = sessions.filter(s => s.status === 'ready').length;
   document.getElementById('badge-complete').textContent = sessions.filter(s => s.status === 'complete').length;
 }
 
@@ -421,6 +473,8 @@ function updatePageHeader() {
     reviewing: 'In Client Review',
     submitted: 'Selections Made',
     editing: 'In Editing',
+    'in-review': 'In Review',
+    ready: 'Ready to Send',
     complete: 'Session Complete',
   };
   document.getElementById('page-title').textContent = titleMap[currentFilter] || 'All Sessions';
@@ -435,7 +489,7 @@ function openModal(sessionId) {
   document.getElementById('modal-customer-name').textContent = session.client_name;
   document.getElementById('modal-email').textContent = session.client_email;
   document.getElementById('modal-series').textContent = parseSeries(session.package_name);
-  document.getElementById('modal-session-type').textContent = session.package_name || '—';
+  document.getElementById('modal-session-type').textContent = formatSessionType(session.package_name);
   document.getElementById('modal-booking-date').textContent = new Date(session.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   document.getElementById('modal-status').textContent = session.status;
   document.getElementById('modal-photo-count').textContent = '0'; // TODO
