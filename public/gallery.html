@@ -58,9 +58,28 @@
     .filter-count strong { color: var(--ink); }
 
     /* ── Gallery grid ── */
-    .gallery { padding: 20px; columns: 4 200px; column-gap: 10px; }
-    @media (max-width: 640px) { .gallery { columns: 2 140px; padding: 12px; } }
+    .gallery { padding: 20px; columns: 4 200px; column-gap: 10px; margin-right: 340px; }
+    @media (max-width: 640px) { .gallery { columns: 2 140px; padding: 12px; margin-right: 0; } }
     @media (max-width: 400px) { .gallery { columns: 1; } }
+
+    /* ── Pricing Sidebar ── */
+    .pricing-sidebar { position: fixed; right: 0; top: 60px; width: 320px; height: calc(100vh - 60px); background: white; border-left: 1px solid var(--border); display: flex; flex-direction: column; z-index: 50; }
+    .pricing-header { padding: 20px; border-bottom: 1px solid var(--border); }
+    .pricing-header h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .pricing-header .subtitle { font-size: 12px; color: var(--ink-mid); }
+    .pricing-body { flex: 1; overflow-y: auto; padding: 20px; }
+    .pricing-section { margin-bottom: 24px; }
+    .pricing-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); margin-bottom: 12px; }
+    .pricing-line { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 14px; }
+    .pricing-line .label { color: var(--ink-mid); }
+    .pricing-line .value { font-weight: 600; color: var(--ink); }
+    .pricing-divider { height: 1px; background: var(--border); margin: 16px 0; }
+    .pricing-total { font-size: 24px; font-weight: 700; text-align: right; color: var(--ink); margin-top: 12px; }
+    .pricing-footer { padding: 20px; border-top: 1px solid var(--border); }
+    .checkout-btn { width: 100%; padding: 14px; background: var(--ink); color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 4px; }
+    .checkout-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .checkout-btn:hover:not(:disabled) { background: #333; }
+    @media (max-width: 640px) { .pricing-sidebar { display: none; } }
 
     /* ── Image card ── */
     .img-card { break-inside: avoid; margin-bottom: 10px; position: relative; cursor: pointer; border-radius: 2px; overflow: hidden; background: #ddd; box-shadow: 0 1px 4px var(--shadow); transition: transform 0.2s, box-shadow 0.2s; }
@@ -179,6 +198,43 @@
   <div class="step" id="step3">
     <div class="step-num">3</div>
     <div class="step-label">Submit</div>
+  </div>
+</div>
+
+<!-- Pricing Sidebar -->
+<div class="pricing-sidebar" id="pricing-sidebar">
+  <div class="pricing-header">
+    <h3>Your Selection</h3>
+    <div class="subtitle" id="package-name">Loading...</div>
+  </div>
+  <div class="pricing-body">
+    <div class="pricing-section">
+      <div class="pricing-section-title">Package</div>
+      <div class="pricing-line">
+        <span class="label" id="package-label">—</span>
+        <span class="value">Included</span>
+      </div>
+    </div>
+    <div class="pricing-section">
+      <div class="pricing-section-title">Your Selections</div>
+      <div class="pricing-line">
+        <span class="label">Images selected</span>
+        <span class="value" id="selected-count">0</span>
+      </div>
+      <div id="tier-breakdown"></div>
+    </div>
+    <div class="pricing-section" id="charges-section" style="display:none;">
+      <div class="pricing-section-title">Additional Charges</div>
+      <div id="charges-list"></div>
+    </div>
+    <div class="pricing-divider"></div>
+    <div class="pricing-line">
+      <span class="label">Total Due</span>
+      <div class="pricing-total">$<span id="total-amount">0</span></div>
+    </div>
+  </div>
+  <div class="pricing-footer">
+    <button class="checkout-btn" id="checkout-btn" disabled onclick="proceedToCheckout()">Review & Submit</button>
   </div>
 </div>
 
@@ -489,6 +545,7 @@ function toggleSelect(idx) {
   }
   
   updateSubmitBar();
+  updatePricingSidebar();
   debounceSave();
 }
 
@@ -521,6 +578,7 @@ function openModal(idx) {
 function updateEditingTier() {
   if (modalIdx === null) return;
   images[modalIdx].editing_tier = document.getElementById('modalEditingTier').value;
+  updatePricingSidebar();
   debounceSave();
 }
 
@@ -577,6 +635,65 @@ function showError(msg) {
 function showToast(msg) {
   const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Pricing sidebar
+function updatePricingSidebar() {
+  const selected = images.filter(img => img.is_selected);
+  const selectedCount = selected.length;
+
+  document.getElementById('selected-count').textContent = selectedCount;
+
+  const tierCounts = {
+    basic: selected.filter(img => !img.editing_tier || img.editing_tier === 'basic').length,
+    tier_1: selected.filter(img => img.editing_tier === 'tier_1').length,
+    tier_2: selected.filter(img => img.editing_tier === 'tier_2').length,
+    tier_3: selected.filter(img => img.editing_tier === 'tier_3').length,
+  };
+
+  const tierBreakdown = document.getElementById('tier-breakdown');
+  tierBreakdown.innerHTML = '';
+  if (tierCounts.basic > 0) tierBreakdown.innerHTML += `<div class="pricing-line"><span class="label">  Basic editing</span><span class="value">${tierCounts.basic}</span></div>`;
+  if (tierCounts.tier_1 > 0) tierBreakdown.innerHTML += `<div class="pricing-line"><span class="label">  Tier I</span><span class="value">${tierCounts.tier_1}</span></div>`;
+  if (tierCounts.tier_2 > 0) tierBreakdown.innerHTML += `<div class="pricing-line"><span class="label">  Tier II</span><span class="value">${tierCounts.tier_2}</span></div>`;
+  if (tierCounts.tier_3 > 0) tierBreakdown.innerHTML += `<div class="pricing-line"><span class="label">  Tier III</span><span class="value">${tierCounts.tier_3}</span></div>`;
+
+  let total = 0;
+  const chargesList = document.getElementById('charges-list');
+  chargesList.innerHTML = '';
+
+  const packageIncluded = sessionData.num_included || 0;
+  const extras = Math.max(0, selectedCount - packageIncluded);
+
+  if (extras > 0) {
+    const extraCost = extras * 35;
+    total += extraCost;
+    chargesList.innerHTML += `<div class="pricing-line"><span class="label">${extras} additional image${extras > 1 ? 's' : ''}</span><span class="value">$${extraCost}</span></div>`;
+  }
+
+  if (tierCounts.tier_1 > 0) {
+    const cost = tierCounts.tier_1 * 35;
+    total += cost;
+    chargesList.innerHTML += `<div class="pricing-line"><span class="label">${tierCounts.tier_1} Tier I upgrade${tierCounts.tier_1 > 1 ? 's' : ''}</span><span class="value">$${cost}</span></div>`;
+  }
+  if (tierCounts.tier_2 > 0) {
+    const cost = tierCounts.tier_2 * 65;
+    total += cost;
+    chargesList.innerHTML += `<div class="pricing-line"><span class="label">${tierCounts.tier_2} Tier II upgrade${tierCounts.tier_2 > 1 ? 's' : ''}</span><span class="value">$${cost}</span></div>`;
+  }
+  if (tierCounts.tier_3 > 0) {
+    const cost = tierCounts.tier_3 * 95;
+    total += cost;
+    chargesList.innerHTML += `<div class="pricing-line"><span class="label">${tierCounts.tier_3} Tier III upgrade${tierCounts.tier_3 > 1 ? 's' : ''}</span><span class="value">$${cost}</span></div>`;
+  }
+
+  document.getElementById('charges-section').style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('total-amount').textContent = total;
+  document.getElementById('checkout-btn').disabled = selectedCount === 0;
+}
+
+function proceedToCheckout() {
+  goToAddons();
 }
 
 init();
