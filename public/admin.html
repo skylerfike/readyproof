@@ -73,6 +73,8 @@
     .card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 12px; }
     .photo-count { font-size: 24px; font-weight: 700; color: var(--text); }
     .photo-count-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); }
+    .view-gallery-btn { padding: 8px 16px; background: white; border: 2px solid var(--text); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+    .view-gallery-btn:hover { background: var(--text); color: white; }
 
     /* Modal */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
@@ -414,6 +416,9 @@ function renderCard(session) {
           <div class="photo-count-label">Photos</div>
           <div class="photo-count">${photoCount}</div>
         </div>
+        <button class="view-gallery-btn" onclick="event.stopPropagation(); window.open('/gallery/${session.magic_token}', '_blank')">
+          View Gallery →
+        </button>
       </div>
     </div>
   `;
